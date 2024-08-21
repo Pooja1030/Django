@@ -5,6 +5,7 @@ from .serializers import TransactionsSerializer
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 from django.db.models import Sum
+from rest_framework.exceptions import NotFound
 
 
 # Create your views here.
@@ -47,10 +48,33 @@ class TransactionAPI(APIView):
         })
     
 
-    def put(self, request):
+def put(self, request):
+    data = request.data
+
+    if not data.get('id'):
         return Response({
-            "message":"This is a put method"
+            "message": "Data is not updated",
+            "errors": "Id is required",
         })
+
+    try:
+        transaction = Transactions.objects.get(id=data.get('id'))
+    except Transactions.DoesNotExist:
+        raise NotFound("Transaction not found")
+
+    serializer = TransactionsSerializer(transaction, data=data)
+
+    if not serializer.is_valid():
+        return Response({
+            "message": "Data not saved",
+            "errors": serializer.errors,
+        })
+
+    serializer.save()
+    return Response({
+        "message": "Data is updated",
+        "data": serializer.data
+    })
     
 
     def patch(self, request):
